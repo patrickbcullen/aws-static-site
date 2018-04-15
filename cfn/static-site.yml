@@ -1,0 +1,57 @@
+---
+Parameters:
+  RootDomainName:
+    Description: Root domain name for the website. Used to lookup Route53 Hosted Zone.
+    Default: example.com
+    Type: String
+
+  SiteDomainName:
+    Description: Subdomain name of the website.
+    Default: blog.example.com
+    Type: String
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      S3hostedzoneID: Z3AQBSTGFYJSTF
+      websiteendpoint: s3-website-us-east-1.amazonaws.com
+    us-west-2:
+      S3hostedzoneID: Z3BJ6K6RIION7M
+      websiteendpoint: s3-website-us-west-2.amazonaws.com
+
+Resources:
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref SiteDomainName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: "index.html"
+        ErrorDocument: "404.html"
+      Tags:
+        - Key: Name
+          Value: !Ref SiteDomainName
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: SiteBucketPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Join ['', ['arn:aws:s3:::', !Ref SiteBucket, '/*']]
+      Bucket: !Ref SiteBucket
+  DNS:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub ${RootDomainName}.
+      Comment: Zone apex alias.
+      RecordSets:
+        - Name: !Ref SiteDomainName
+          Type: A
+          AliasTarget:
+            HostedZoneId: !FindInMap [RegionMap, !Ref 'AWS::Region', S3hostedzoneID]
+            DNSName: !FindInMap [RegionMap, !Ref 'AWS::Region', websiteendpoint]
