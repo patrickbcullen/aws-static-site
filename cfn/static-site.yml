@@ -4,11 +4,14 @@ Parameters:
     Description: Root domain name for the website. Used to lookup Route53 Hosted Zone.
     Default: example.com
     Type: String
-
   SiteDomainName:
     Description: Subdomain name of the website.
     Default: blog.example.com
     Type: String
+  CertificateARN:
+    Type: String
+    Description: the Amazon Resource Name (ARN) of an AWS Certificate Manager (ACM) certificate.
+    AllowedPattern: "arn:aws:acm:.*"
 
 Mappings:
   RegionMap:
@@ -55,3 +58,40 @@ Resources:
           AliasTarget:
             HostedZoneId: !FindInMap [RegionMap, !Ref 'AWS::Region', S3hostedzoneID]
             DNSName: !FindInMap [RegionMap, !Ref 'AWS::Region', websiteendpoint]
+  OriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Properties:
+      CloudFrontOriginAccessIdentityConfig: 
+        Comment: This configuration blocks direct access to the S3 bucket so that all traffic goes through CloudFront
+  WebsiteCloudFront:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - SiteBucket 
+      - OriginAccessIdentity
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt SiteBucket.DomainName
+            Id: S3Origin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${OriginAccessIdentity}
+        Enabled: true
+        HttpVersion: 'http2'
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref SiteDomainName
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: true
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateARN
+          SslSupportMethod: sni-only
