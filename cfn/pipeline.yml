@@ -91,6 +91,8 @@ Resources:
           Resource:
           - !GetAtt CodePipelineBucket.Arn
           - !Join ['', [!GetAtt CodePipelineBucket.Arn, '/*']]
+          - !Sub 'arn:aws:s3:::${SiteDomainName}'
+          - !Sub 'arn:aws:s3:::${SiteDomainName}/*'
         - Action:
           - logs:CreateLogGroup
           - logs:CreateLogStream
