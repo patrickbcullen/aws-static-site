@@ -103,6 +103,11 @@ Resources:
           Effect: Allow
           Resource:
           - '*'
+        - Action:
+          - cloudfront:CreateInvalidation
+          Effect: Allow
+          Resource:
+          - '*'
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
