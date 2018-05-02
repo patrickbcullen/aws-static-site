@@ -5,6 +5,7 @@ phases:
     commands:
       - echo Deployment started on `date`
       - aws s3 sync build/ s3://${SITE_BUCKET} --cache-control max-age=31536000
+      - aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION} --paths /index.html
   post_build:
     commands:
       - echo Deployment completed on `date`

@@ -5,6 +5,9 @@ Parameters:
   SiteDomainName:
     Description: Subdomain name of the website.
     Type: String
+  CloudFrontDistribution:
+    Description: CloudFront distribution ID for clearing the cache.
+    Type: String
   Pipeline:
     Description: The name of the pipeline
     Type: String
@@ -185,6 +188,8 @@ Resources:
         EnvironmentVariables:
         - Name: SITE_BUCKET
           Value: !Ref SiteDomainName
+        - Name: CLOUDFRONT_DISTRIBUTION
+          Value: !Ref CloudFrontDistribution
       Source:
         Type: CODEPIPELINE
         BuildSpec: deployspec.yml
