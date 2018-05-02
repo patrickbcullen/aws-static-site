@@ -58,6 +58,7 @@ Resources:
           - !Join ['', [!GetAtt CodePipelineBucket.Arn, '/*']]
         - Action:
           - codebuild:StartBuild
+          - codebuild:BatchGetBuilds
           Effect: Allow
           Resource:
           - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}*'
