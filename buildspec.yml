@@ -16,4 +16,4 @@ phases:
 artifacts:
   files:
     - deployspec.yml
-    - build/**
+    - build/**/*
