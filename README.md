@@ -11,8 +11,10 @@ Create an ACM certificate in the AWS console for with names `*.example.com` and 
 aws cloudformation create-stack --stack-name blog-example-com-site --template-body file://cfn/static-site.yml --parameters ParameterKey=SiteDomainName,ParameterValue=blog.example.com ParameterKey=RootDomainName,ParameterValue=example.com ParameterKey=CertificateARN,ParameterValue=arn:aws:acm:us-east-1:111111111111:certificate/22222222-2222-222222222-222222222222
 ```
 
+### Create the deployment pipeline 
+```
+aws cloudformation create-stack --stack-name blog-example-com-pipeline --template-body file://cfn/pipeline.yml --capabilities CAPABILITY_IAM --parameters ParameterKey=Pipeline,ParameterValue=blog-example-com ParameterKey=GitHubOwner,ParameterValue=MyOwner ParameterKey=GitHubRepo,ParameterValue=MyRepo ParameterKey=GitHubToken,ParameterValue=MyToken
+```
+
 ### Deploy the site to S3
-```
-aws s3 cp public/index.html s3://blog.example.com
-aws s3 cp public/404.html s3://blog.example.com
-```
+TBD

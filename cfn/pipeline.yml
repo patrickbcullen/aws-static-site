@@ -1,0 +1,170 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  Pipeline:
+    Description: The name of the pipeline
+    Type: String
+  GitHubOwner:
+    Description: The name of the GitHub repository owner
+    Type: String
+  GitHubRepo:
+    Description: The name of the GitHub repository
+    Type: String
+  GitHubBranch:
+    Description: The name of the GitHub repository branch
+    Type: String
+    Default: master
+  GitHubToken:
+    Description: OAuth token for repository access (https://github.com/settings/tokens)
+    Type: String
+    NoEcho: true
+
+Resources:
+  CodePipelineBucket:
+    Type: AWS::S3::Bucket
+  CodePipelineRole:
+    Description: The role CodePipeline will assume during pipeline execution
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+  CodePipelinePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: CodePipelinePolicy
+      Roles:
+        - !Ref CodePipelineRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:GetBucketVersioning
+              - s3:PutObject
+            Effect: Allow
+            Resource:
+              - !GetAtt CodePipelineBucket.Arn
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action: sts:AssumeRole
+  CodeBuildPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: CodeBuildPolicy
+      Roles:
+        - !Ref CodeBuildRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:GetBucketVersioning
+              - s3:PutObject
+            Effect: Allow
+            Resource:
+              - !GetAtt CodePipelineBucket.Arn
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub ${Pipeline}
+      RestartExecutionOnUpdate: true
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref CodePipelineBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: CloneRepository
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Branch: !Ref GitHubBranch
+                Repo: !Ref GitHubRepo
+                OAuthToken: !Ref GitHubToken
+              RunOrder: 1
+        - Name: Build
+          Actions:
+          - Name: Build
+            InputArtifacts:
+            - Name: SourceOutput
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            OutputArtifacts:
+            - Name: BuildOutput
+            Configuration:
+              ProjectName: !Ref BuildProject
+            RunOrder: 1
+        - Name: Prod
+          Actions:
+          - Name: Deploy
+            InputArtifacts:
+            - Name: BuildOutput
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            Configuration:
+              ProjectName: !Ref ProdDeployProject
+            RunOrder: 1
+
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-BuildProject
+      Description: Build Lambda and push to S3
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: "LINUX_CONTAINER"
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: "aws/codebuild/nodejs:6.3.1"
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+      TimeoutInMinutes: 5
+
+  ProdDeployProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-ProdDeployProject
+      Description: Deploy Lambda
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: "LINUX_CONTAINER"
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: "aws/codebuild/nodejs:6.3.1"
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: deployspec.yml
+      TimeoutInMinutes: 5
