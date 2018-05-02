@@ -29,4 +29,7 @@ aws cloudformation create-stack --stack-name blog-example-com-pipeline --templat
 ```
 
 ### Deploy the site
-The CodePipeline will automatically deploy the site to S3 on every commit. To increase the effeciency of the cache, files have a cache expiration of 1 year. When a new version of the site is deployed all files with the exception of index.html contain a hash that changes when then contents of the file is updated. Then the CloudFront cache is invalidated for the index.html during the deployment so that users see the updated site.
+The CodePipeline will automatically deploy the site to S3 on every commit. 
+
+### Caching
+To increase the effeciency of the site, files are cached for as long as possible. The build process generates a unique hash for each file based on its contents. This allows for indefinite caching of files because the file name will change if the contents are changed. Both the browser and the CDN are instructed to cache these files are 1 year with the `Cache-Content: max-age=31536000` header. The index.html is different because it does not contain a unique hash. To update the index.html, the browser is instructed to cached the file for 1 minute and the CDN is instructed to cache the file for 1 year using the `Cache-Content: max-age=60,s-maxage=31536000` header. Each time the site is deployed the index.html is cleared from the CDN cache so that the browser will get the updated version quickly.
