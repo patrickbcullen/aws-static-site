@@ -36,7 +36,7 @@ Resources:
             Effect: Allow
             Principal:
               Service:
-                - codepipeline.amazonaws.com
+              - codepipeline.amazonaws.com
             Action: sts:AssumeRole
   CodePipelinePolicy:
     Type: AWS::IAM::Policy
@@ -47,20 +47,20 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Action:
-              - s3:GetObject
-              - s3:GetObjectVersion
-              - s3:GetBucketVersioning
-              - s3:PutObject
-            Effect: Allow
-            Resource:
-              - !GetAtt CodePipelineBucket.Arn
-              - !Join ['', [!GetAtt CodePipelineBucket.Arn, '/*']]
-          - Action:
-              - codebuild:StartBuild
-            Effect: Allow
-            Resource:
-              - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}*'
+        - Action:
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:GetBucketVersioning
+          - s3:PutObject
+          Effect: Allow
+          Resource:
+          - !GetAtt CodePipelineBucket.Arn
+          - !Join ['', [!GetAtt CodePipelineBucket.Arn, '/*']]
+        - Action:
+          - codebuild:StartBuild
+          Effect: Allow
+          Resource:
+          - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}*'
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -70,7 +70,7 @@ Resources:
             Effect: Allow
             Principal:
               Service:
-                - codebuild.amazonaws.com
+              - codebuild.amazonaws.com
             Action: sts:AssumeRole
   CodeBuildPolicy:
     Type: AWS::IAM::Policy
@@ -81,14 +81,22 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Action:
-              - s3:GetObject
-              - s3:GetObjectVersion
-              - s3:GetBucketVersioning
-              - s3:PutObject
-            Effect: Allow
-            Resource:
-              - !GetAtt CodePipelineBucket.Arn
+        - Action:
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:GetBucketVersioning
+          - s3:PutObject
+          Effect: Allow
+          Resource:
+          - !GetAtt CodePipelineBucket.Arn
+          - !Join ['', [!GetAtt CodePipelineBucket.Arn, '/*']]
+        - Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource:
+          - '*'
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -99,50 +107,50 @@ Resources:
         Type: S3
         Location: !Ref CodePipelineBucket
       Stages:
-        - Name: Source
-          Actions:
-            - Name: CloneRepository
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Version: 1
-                Provider: GitHub
-              OutputArtifacts:
-                - Name: SourceOutput
-              Configuration:
-                Owner: !Ref GitHubOwner
-                Branch: !Ref GitHubBranch
-                Repo: !Ref GitHubRepo
-                OAuthToken: !Ref GitHubToken
-              RunOrder: 1
-        - Name: Build
-          Actions:
-          - Name: Build
-            InputArtifacts:
+      - Name: Source
+        Actions:
+        - Name: CloneRepository
+          ActionTypeId:
+            Category: Source
+            Owner: ThirdParty
+            Version: 1
+            Provider: GitHub
+          OutputArtifacts:
             - Name: SourceOutput
-            ActionTypeId:
-              Category: Build
-              Owner: AWS
-              Version: '1'
-              Provider: CodeBuild
-            OutputArtifacts:
-            - Name: BuildOutput
-            Configuration:
-              ProjectName: !Ref BuildProject
-            RunOrder: 1
-        - Name: Prod
-          Actions:
-          - Name: Deploy
-            InputArtifacts:
-            - Name: BuildOutput
-            ActionTypeId:
-              Category: Build
-              Owner: AWS
-              Version: '1'
-              Provider: CodeBuild
-            Configuration:
-              ProjectName: !Ref ProdDeployProject
-            RunOrder: 1
+          Configuration:
+            Owner: !Ref GitHubOwner
+            Branch: !Ref GitHubBranch
+            Repo: !Ref GitHubRepo
+            OAuthToken: !Ref GitHubToken
+          RunOrder: 1
+      - Name: Build
+        Actions:
+        - Name: Build
+          InputArtifacts:
+          - Name: SourceOutput
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          OutputArtifacts:
+          - Name: BuildOutput
+          Configuration:
+            ProjectName: !Ref BuildProject
+          RunOrder: 1
+      - Name: Prod
+        Actions:
+        - Name: Deploy
+          InputArtifacts:
+          - Name: BuildOutput
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          Configuration:
+            ProjectName: !Ref ProdDeployProject
+          RunOrder: 1
 
   BuildProject:
     Type: AWS::CodeBuild::Project
@@ -172,8 +180,8 @@ Resources:
         ComputeType: "BUILD_GENERAL1_SMALL"
         Image: "aws/codebuild/nodejs:6.3.1"
         EnvironmentVariables:
-          - Name: SITE_BUCKET
-            Value: !Ref SiteDomainName
+        - Name: SITE_BUCKET
+          Value: !Ref SiteDomainName
       Source:
         Type: CODEPIPELINE
         BuildSpec: deployspec.yml
