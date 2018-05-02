@@ -2,6 +2,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
+  SiteDomainName:
+    Description: Subdomain name of the website.
+    Type: String
   Pipeline:
     Description: The name of the pipeline
     Type: String
@@ -52,6 +55,12 @@ Resources:
             Effect: Allow
             Resource:
               - !GetAtt CodePipelineBucket.Arn
+              - !Join ['', [!GetAtt CodePipelineBucket.Arn, '/*']]
+          - Action:
+              - codebuild:StartBuild
+            Effect: Allow
+            Resource:
+              - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}*'
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -139,7 +148,6 @@ Resources:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: !Sub ${AWS::StackName}-BuildProject
-      Description: Build Lambda and push to S3
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Artifacts:
         Type: CODEPIPELINE
@@ -156,7 +164,6 @@ Resources:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: !Sub ${AWS::StackName}-ProdDeployProject
-      Description: Deploy Lambda
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Artifacts:
         Type: CODEPIPELINE
@@ -164,6 +171,9 @@ Resources:
         Type: "LINUX_CONTAINER"
         ComputeType: "BUILD_GENERAL1_SMALL"
         Image: "aws/codebuild/nodejs:6.3.1"
+        EnvironmentVariables:
+          - Name: SITE_BUCKET
+            Value: !Ref SiteDomainName
       Source:
         Type: CODEPIPELINE
         BuildSpec: deployspec.yml

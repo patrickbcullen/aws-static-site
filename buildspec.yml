@@ -4,14 +4,15 @@ phases:
   install:
     commands:
       - echo Installing packages...
-      - npm install -g
+      - npm install
   build:
     commands:
       - echo Build started on `date`
-      - npm build
+      - npm test
+      - npm run build
   post_build:
     commands:
       - echo Build completed on `date`
 artifacts:
   files:
-    - src/HelloWorld.js
+    - build/*

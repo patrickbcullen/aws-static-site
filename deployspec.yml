@@ -1,0 +1,10 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo Deployment started on `date`
+      - s3 sync build/ s3://${SITE_BUCKET}
+  post_build:
+    commands:
+      - echo Deployment completed on `date`
