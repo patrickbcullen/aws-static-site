@@ -5,6 +5,7 @@ phases:
     commands:
       - echo Deployment started on `date`
       - aws s3 sync build/ s3://${SITE_BUCKET} --exclude index.html --cache-control max-age=31536000
+      - sleep 120
       - aws s3 cp build/index.html s3://${SITE_BUCKET} --metadata-directive REPLACE --cache-control "max-age=60,s-maxage=31536000"
       - aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION} --paths /index.html
   post_build:
