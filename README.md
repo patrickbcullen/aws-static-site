@@ -36,5 +36,7 @@ aws s3 cp build/index.html s3://${SITE_BUCKET} --metadata-directive REPLACE --ca
 aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION} --paths /index.html
 ```
 
+The `s3 sync` command only copies new files to S3, it never removes existing files. By not removing existing files it prevents a race condition where a client may have received an old index.html that references the old CSS/JS files which are deleted from S3 by a new deployment. Because S3 is eventually consistent it is not safe to immediately delete these old CSS/JS files when the new index.html is deployed. 
+
 ### Caching
 To increase the effeciency of the site, files are cached for as long as possible. The build process generates a unique hash for each file based on its contents. This allows for indefinite caching of files because the file name will change if the contents are changed. Both the browser and the CDN are instructed to cache these files are 1 year with the `Cache-Content: max-age=31536000` header. The index.html is different because it does not contain a unique hash. To update the index.html, the browser is instructed to cached the file for 1 minute and the CDN is instructed to cache the file for 1 year using the `Cache-Content: max-age=60,s-maxage=31536000` header. Each time the site is deployed the index.html is cleared from the CDN cache so that the browser will get the updated version quickly.
