@@ -9,11 +9,9 @@ phases:
     commands:
       - echo Build started on `date`
       - CI=true npm test
-      - npm run build
   post_build:
     commands:
       - echo Build completed on `date`
 artifacts:
   files:
-    - deployspec.yml
-    - build/**/*
+    - '**/*'
