@@ -1,6 +1,8 @@
 # aws-static-site
 AWS CloudFormation templates for building a static website hosted on S3 and CloudFront. The project also includes a simple React website to demonstrate the deployment process.
 
+![AWS](aws.png)
+
 ## Setup 
 To deploy the changes you need to create a certificate, deploy the site stack, and deploy the site to S3. We will use `blog.example.com` as our site name as an example.
 ### Create certificate
