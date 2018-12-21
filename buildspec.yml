@@ -4,16 +4,10 @@ phases:
   install:
     commands:
       - echo Installing packages...
-      - npm install
   build:
     commands:
       - echo Build started on `date`
-      - CI=true npm test
-      - npm run build
+      - aws s3 cp s3://nhts3/myarchive.zip .
   post_build:
     commands:
       - echo Build completed on `date`
-artifacts:
-  files:
-    - deployspec.yml
-    - build/**/*
